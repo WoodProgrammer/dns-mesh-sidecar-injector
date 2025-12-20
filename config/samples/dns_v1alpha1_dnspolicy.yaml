@@ -1,0 +1,9 @@
+apiVersion: dns.dnspolicies.io/v1alpha1
+kind: DnsPolicy
+metadata:
+  labels:
+    app.kubernetes.io/name: dns-mesh-controller
+    app.kubernetes.io/managed-by: kustomize
+  name: dnspolicy-sample
+spec:
+  # TODO(user): Add fields here
