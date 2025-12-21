@@ -71,10 +71,17 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage) ([]byte, error
 			"cluster.local",
 		},
 	}
+
 	patches = append(patches, patchOperation{
 		Op:    "add",
 		Path:  "/spec/template/spec/dnsConfig",
 		Value: dnsConfig,
+	})
+
+	patches = append(patches, patchOperation{
+		Op:    "add",
+		Path:  "/spec/template/spec/dnsPolicy",
+		Value: corev1.DNSNone,
 	})
 
 	// Add annotation to mark injection as completed
