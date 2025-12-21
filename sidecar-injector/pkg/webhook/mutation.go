@@ -65,6 +65,11 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage) ([]byte, error
 	// Add DNS configuration
 	dnsConfig := &corev1.PodDNSConfig{
 		Nameservers: []string{"127.0.0.1"},
+		Searches: []string{
+			"default.svc.cluster.local",
+			"svc.cluster.local",
+			"cluster.local",
+		},
 	}
 	patches = append(patches, patchOperation{
 		Op:    "add",
