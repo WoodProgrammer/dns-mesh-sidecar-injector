@@ -36,19 +36,12 @@ func shouldInject(deployment *appsv1.Deployment) bool {
 
 func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAddress string) ([]byte, error) {
 	var patches []patchOperation
-	var envVars []corev1.EnvVar
-	// Create sidecar container
-	envVar := corev1.EnvVar{
-		Name:  "UPSTREAM_DNS_ADDRESS",
-		Value: upstreamDNSAddress,
-	}
 
-	envVars = append(envVars, envVar)
 	sidecarContainer := corev1.Container{
 		Name:      sidecarName,
 		Image:     fmt.Sprintf("%s:%s", img.Name, img.Tag),
 		Resources: corev1.ResourceRequirements{},
-		Env:       envVars,
+		Args:      []string{"-upstream", fmt.Sprintf("%s:%s", upstreamDNSAddress, "53")},
 	}
 
 	// Check if containers array exists
