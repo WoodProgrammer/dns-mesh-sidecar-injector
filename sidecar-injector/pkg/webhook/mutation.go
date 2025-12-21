@@ -61,7 +61,17 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage) ([]byte, error
 			Value: sidecarContainer,
 		})
 	}
-	deployment.Spec.Template.Spec.DNSConfig.Nameservers = []string{"127.0.0.1"}
+
+	// Add DNS configuration
+	dnsConfig := &corev1.PodDNSConfig{
+		Nameservers: []string{"127.0.0.1"},
+	}
+	patches = append(patches, patchOperation{
+		Op:    "add",
+		Path:  "/spec/template/spec/dnsConfig",
+		Value: dnsConfig,
+	})
+
 	// Add annotation to mark injection as completed
 	if deployment.Spec.Template.Annotations == nil {
 		patches = append(patches, patchOperation{

@@ -21,10 +21,10 @@ spec:
         image: docker.io/emirozbir/sidecar-injector:latest
         env:
         - name: SIDECAR_IMAGE
-          value: "docker.io/emirozbir/sidecar-injector"
+          value: "docker.io/emirozbir/sidecar-dns"
         - name: SIDECAR_IMAGE_TAG
           value: "latest"
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - containerPort: 8443
           name: https
