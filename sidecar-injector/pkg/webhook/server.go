@@ -1,6 +1,7 @@
 package webhook
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,9 +11,12 @@ import (
 
 	admissionv1 "k8s.io/api/admission/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 var (
@@ -22,7 +26,10 @@ var (
 )
 
 type Server struct {
-	img SidecarImage
+	img                 SidecarImage
+	k8sClient           kubernetes.Interface
+	dnsServiceName      string
+	dnsServiceNamespace string
 }
 
 func NewServer() *Server {
@@ -38,9 +45,50 @@ func NewServer() *Server {
 		Tag:  sideCarImageTag,
 	}
 
-	return &Server{
-		img: img,
+	// Get DNS service configuration from environment variables with defaults
+	dnsServiceName := os.Getenv("DNS_SERVICE_NAME")
+	if dnsServiceName == "" {
+		dnsServiceName = "kube-dns"
 	}
+
+	dnsServiceNamespace := os.Getenv("DNS_SERVICE_NAMESPACE")
+	if dnsServiceNamespace == "" {
+		dnsServiceNamespace = "kube-system"
+	}
+
+	// Create Kubernetes in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatalf("Failed to create in-cluster config: %v", err)
+	}
+
+	// Create Kubernetes clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatalf("Failed to create Kubernetes client: %v", err)
+	}
+
+	return &Server{
+		img:                 img,
+		k8sClient:           clientset,
+		dnsServiceName:      dnsServiceName,
+		dnsServiceNamespace: dnsServiceNamespace,
+	}
+}
+
+func (s *Server) getDNSServiceIP(ctx context.Context) (string, error) {
+	// Fetch the DNS service from Kubernetes
+	service, err := s.k8sClient.CoreV1().Services(s.dnsServiceNamespace).Get(ctx, s.dnsServiceName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get DNS service %s/%s: %v", s.dnsServiceNamespace, s.dnsServiceName, err)
+	}
+
+	// Check if the service has a ClusterIP
+	if service.Spec.ClusterIP == "" || service.Spec.ClusterIP == corev1.ClusterIPNone {
+		return "", fmt.Errorf("DNS service %s/%s does not have a valid ClusterIP", s.dnsServiceNamespace, s.dnsServiceName)
+	}
+
+	return service.Spec.ClusterIP, nil
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -127,8 +175,22 @@ func (s *Server) mutate(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionR
 		}
 	}
 
+	// Fetch the DNS service IP
+	ctx := context.Background()
+	dnsServiceIP, err := s.getDNSServiceIP(ctx)
+	if err != nil {
+		log.Printf("Could not get DNS service IP: %v", err)
+		return &admissionv1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: fmt.Sprintf("Failed to fetch DNS service IP: %v", err),
+			},
+		}
+	}
+
+	log.Printf("Using DNS service IP: %s for deployment %s/%s", dnsServiceIP, deployment.Namespace, deployment.Name)
+
 	// Create JSON patch for sidecar injection
-	patchBytes, err := createPatch(&deployment, s.img)
+	patchBytes, err := createPatch(&deployment, s.img, dnsServiceIP)
 	if err != nil {
 		log.Printf("Could not create patch: %v", err)
 		return &admissionv1.AdmissionResponse{

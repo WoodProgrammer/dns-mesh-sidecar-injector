@@ -10,7 +10,7 @@ metadata:
   name: sidecar-injector
 rules:
 - apiGroups: [""]
-  resources: ["pods"]
+  resources: ["pods", "service", "services"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["apps"]
   resources: ["deployments"]
