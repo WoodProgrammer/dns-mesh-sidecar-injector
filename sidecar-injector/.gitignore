@@ -32,7 +32,6 @@ deploy/ca-bundle.txt
 .idea/
 *.swp
 *.swo
-*~
 
 # OS
 .DS_Store
