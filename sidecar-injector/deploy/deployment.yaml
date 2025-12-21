@@ -19,6 +19,11 @@ spec:
       containers:
       - name: webhook
         image: docker.io/emirozbir/sidecar-injector:latest
+        env:
+        - name: SIDECAR_IMAGE
+          value: "docker.io/emirozbir/sidecar-injector"
+        - name: SIDECAR_IMAGE_TAG
+          value: "latest"
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8443

@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sample-app-osman
+  name: sample-app
   annotations:
     sidecar-injector.io/inject: "true"
 spec:
