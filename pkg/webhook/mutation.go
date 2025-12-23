@@ -85,7 +85,7 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAdd
 		Name:      sidecarName,
 		Image:     fmt.Sprintf("%s:%s", img.Name, img.Tag),
 		Resources: corev1.ResourceRequirements{},
-		Args:      []string{"-upstream", fmt.Sprintf("%s:%s", upstreamDNSAddress, "53")},
+		Args:      []string{"-upstream", fmt.Sprintf("%s:%s", upstreamDNSAddress, "53"), "-controller", "http://dns-mesh-controller-controller-manager-metrics-service:9442"},
 		Env:       envVars,
 	}
 
