@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/google/martian/v3/log"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -73,7 +72,7 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAdd
 	labels := deployment.ObjectMeta.Labels
 	hash, err := ComputeSelectorHash(labels)
 	if err != nil {
-		log.Error("Error while calculating hash")
+		return nil, fmt.Errorf("failed to calculate hash: %v", err)
 	}
 
 	env := corev1.EnvVar{
