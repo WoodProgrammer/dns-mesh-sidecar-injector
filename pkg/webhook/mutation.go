@@ -1,8 +1,11 @@
 package webhook
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -34,14 +37,57 @@ func shouldInject(deployment *appsv1.Deployment) bool {
 	return exists && value == "true"
 }
 
+func ComputeSelectorHash(selector map[string]string) (string, error) {
+	if len(selector) == 0 {
+		return "", nil
+	}
+
+	// Sort keys for deterministic output
+	keys := make([]string, 0, len(selector))
+	for k := range selector {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	// Build sorted map
+	sortedSelector := make(map[string]string, len(selector))
+	for _, k := range keys {
+		sortedSelector[k] = selector[k]
+	}
+
+	// Marshal to JSON
+	data, err := json.Marshal(sortedSelector)
+	if err != nil {
+		return "", err
+	}
+
+	// Compute SHA256 hash
+	hash := sha256.Sum256(data)
+	return hex.EncodeToString(hash[:]), nil
+}
+
 func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAddress string) ([]byte, error) {
 	var patches []patchOperation
+	var envVars []corev1.EnvVar
+	labels := deployment.ObjectMeta.Labels
+	hash, err := ComputeSelectorHash(labels)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate hash: %v", err)
+	}
 
+	env := corev1.EnvVar{
+		Name:  "DNS_MESH_CONFIG_HASH",
+		Value: hash,
+	}
+
+	envVars = append(envVars, env)
 	sidecarContainer := corev1.Container{
 		Name:      sidecarName,
 		Image:     fmt.Sprintf("%s:%s", img.Name, img.Tag),
 		Resources: corev1.ResourceRequirements{},
-		Args:      []string{"-upstream", fmt.Sprintf("%s:%s", upstreamDNSAddress, "53")},
+		Args: []string{"-upstream", fmt.Sprintf("%s:%s", upstreamDNSAddress, "53"), "-controller",
+			"http://dns-mesh-controller-controller-manager-metrics-service:9442"},
+		Env: envVars,
 	}
 
 	// Check if containers array exists
