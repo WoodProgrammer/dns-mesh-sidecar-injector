@@ -24,6 +24,8 @@ spec:
           value: "docker.io/emirozbir/sidecar-dns"
         - name: SIDECAR_IMAGE_TAG
           value: "latest"
+        - name: "CONTROLLER_ADDRESS"
+          value: "http://dns-mesh-controller-service.dns-mesh-controller-system:5959"
         imagePullPolicy: Always
         ports:
         - containerPort: 8443
