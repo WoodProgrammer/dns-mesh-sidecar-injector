@@ -13,7 +13,7 @@ import (
 
 const (
 	sidecarAnnotation = "sidecar-injector.io/inject"
-	sidecarName       = "sidecar"
+	sidecarName       = "sidecar-dns"
 )
 
 type SidecarImage struct {
@@ -74,7 +74,6 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAdd
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate hash: %v", err)
 	}
-
 	env := corev1.EnvVar{
 		Name:  "DNS_MESH_CONFIG_HASH",
 		Value: hash,
@@ -86,9 +85,11 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAdd
 		Image:     fmt.Sprintf("%s:%s", img.Name, img.Tag),
 		Resources: corev1.ResourceRequirements{},
 		Args: []string{"-upstream", fmt.Sprintf("%s:%s", upstreamDNSAddress, "53"), "-controller",
-			"http://dns-mesh-controller-controller-manager-metrics-service:9442"},
+			"http://dns-mesh-controller-controller-manager-metrics-service.dns-mesh-controller-system:9442"},
 		Env: envVars,
 	}
+	// TODO : Fix possible update options in DNSConfig
+	// TODO: Non hardcoded dns mesh controller address
 
 	// Check if containers array exists
 	containers := deployment.Spec.Template.Spec.Containers
@@ -101,6 +102,12 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAdd
 		})
 	} else {
 		// Add sidecar to existing containers
+
+		for _, container := range containers {
+			if container.Name == "sidecar-dns" {
+				return nil, nil
+			}
+		}
 		patches = append(patches, patchOperation{
 			Op:    "add",
 			Path:  "/spec/template/spec/containers/-",

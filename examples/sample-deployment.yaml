@@ -4,6 +4,8 @@ metadata:
   name: sample-app
   annotations:
     sidecar-injector.io/inject: "true"
+  labels:
+    app: frontend
 spec:
   replicas: 1
   selector:
