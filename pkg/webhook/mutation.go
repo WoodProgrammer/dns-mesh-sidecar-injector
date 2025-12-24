@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -69,6 +70,13 @@ func ComputeSelectorHash(selector map[string]string) (string, error) {
 func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAddress string) ([]byte, error) {
 	var patches []patchOperation
 	var envVars []corev1.EnvVar
+
+	controllerAddress := os.Getenv("CONTROLLER_ADDRESS")
+
+	if len(controllerAddress) == 0 {
+		controllerAddress = "http://dns-mesh-controller-controller-manager-metrics-service.dns-mesh-controller-system:5959"
+	}
+
 	labels := deployment.ObjectMeta.Labels
 	hash, err := ComputeSelectorHash(labels)
 	if err != nil {
@@ -84,9 +92,8 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAdd
 		Name:      sidecarName,
 		Image:     fmt.Sprintf("%s:%s", img.Name, img.Tag),
 		Resources: corev1.ResourceRequirements{},
-		Args: []string{"-upstream", fmt.Sprintf("%s:%s", upstreamDNSAddress, "53"), "-controller",
-			"http://dns-mesh-controller-controller-manager-metrics-service.dns-mesh-controller-system:9442"},
-		Env: envVars,
+		Args:      []string{"-upstream", fmt.Sprintf("%s:%s", upstreamDNSAddress, "53"), "-controller", controllerAddress},
+		Env:       envVars,
 	}
 	// TODO : Fix possible update options in DNSConfig
 	// TODO: Non hardcoded dns mesh controller address
