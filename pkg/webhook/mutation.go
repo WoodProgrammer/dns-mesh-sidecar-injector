@@ -70,18 +70,25 @@ func ComputeSelectorHash(selector map[string]string) (string, error) {
 func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAddress string) ([]byte, error) {
 	var patches []patchOperation
 	var envVars []corev1.EnvVar
+	var hash string
 
+	hashObject := make(map[string]string)
 	controllerAddress := os.Getenv("CONTROLLER_ADDRESS")
 
 	if len(controllerAddress) == 0 {
 		controllerAddress = "http://dns-mesh-controller-controller-manager-metrics-service.dns-mesh-controller-system:5959"
 	}
-
-	labels := deployment.ObjectMeta.Labels
-	hash, err := ComputeSelectorHash(labels)
+	hashObject = deployment.ObjectMeta.Labels
+	if deployment.Spec.Template.Spec.ServiceAccountName != "" {
+		hashObject = map[string]string{}
+		hashObject["serviceAccount"] = deployment.Spec.Template.Spec.ServiceAccountName
+	}
+	fmt.Println("The hash object is ", hashObject)
+	hash, err := ComputeSelectorHash(hashObject)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate hash: %v", err)
 	}
+
 	env := corev1.EnvVar{
 		Name:  "DNS_MESH_CONFIG_HASH",
 		Value: hash,
