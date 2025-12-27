@@ -83,7 +83,6 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAdd
 		hashObject = map[string]string{}
 		hashObject["serviceAccount"] = deployment.Spec.Template.Spec.ServiceAccountName
 	}
-	fmt.Println("The hash object is ", hashObject)
 	hash, err := ComputeSelectorHash(hashObject)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate hash: %v", err)
