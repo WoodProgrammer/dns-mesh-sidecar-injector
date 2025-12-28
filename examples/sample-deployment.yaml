@@ -16,7 +16,6 @@ spec:
       labels:
         app: sample-app
     spec:
-      dnsPolicy: None
       containers:
       - name: main
         image: nginx:latest
