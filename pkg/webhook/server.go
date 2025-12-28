@@ -190,13 +190,17 @@ func (s *Server) mutate(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionR
 	log.Printf("Using DNS service IP: %s for deployment %s/%s", dnsServiceIP, deployment.Namespace, deployment.Name)
 
 	// Create JSON patch for sidecar injection
-	patchBytes, err := createPatch(&deployment, s.img, dnsServiceIP)
-	if err != nil {
-		log.Printf("Could not create patch: %v", err)
-		return &admissionv1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: err.Error(),
-			},
+
+	patchBytes := []byte{}
+	if shouldInject(&deployment) {
+		patchBytes, err = createPatch(&deployment, s.img, dnsServiceIP)
+		if err != nil {
+			log.Printf("Could not create patch: %v", err)
+			return &admissionv1.AdmissionResponse{
+				Result: &metav1.Status{
+					Message: err.Error(),
+				},
+			}
 		}
 	}
 

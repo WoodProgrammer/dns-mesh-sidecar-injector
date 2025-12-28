@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sample-app-no-policy
+  name: got-kutay
   annotations:
     sidecar-injector.io/inject: "true"
   labels:
-    app: frontend
+    app: got-kutay
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: sample-app
+      app: got-kutay
   template:
     metadata:
       labels:
-        app: sample-app
+        app: got-kutay
     spec:
-      dnsPolicy: None
+      serviceAccountName: osman
       containers:
       - name: main
         image: nginx:latest
