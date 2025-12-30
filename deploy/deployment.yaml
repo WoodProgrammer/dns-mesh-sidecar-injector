@@ -26,6 +26,8 @@ spec:
           value: "latest"
         - name: "CONTROLLER_ADDRESS"
           value: "http://dns-mesh-controller-service.dns-mesh-controller-system:5959"
+        - name: "DNS_MESH_OPERATIONAL_MODE"
+          value: "balanced"
         imagePullPolicy: Always
         ports:
         - containerPort: 8443
