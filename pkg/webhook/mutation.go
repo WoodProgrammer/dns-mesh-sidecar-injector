@@ -88,16 +88,13 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAdd
 		return nil, fmt.Errorf("failed to calculate hash: %v", err)
 	}
 
+	if len(hash) == 0 {
+		return nil, fmt.Errorf("Calculated hash is empty %v", err)
+	}
 	env := corev1.EnvVar{
 		Name:  "DNS_MESH_CONFIG_HASH",
 		Value: hash,
 	}
-	envVars = append(envVars, env)
-	env = corev1.EnvVar{
-		Name:  "DNS_MESH_OPERATIONAL_MODE",
-		Value: operationalMode,
-	}
-
 	envVars = append(envVars, env)
 	sidecarContainer := corev1.Container{
 		Name:      sidecarName,
