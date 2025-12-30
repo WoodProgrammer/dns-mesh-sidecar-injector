@@ -67,7 +67,7 @@ func ComputeSelectorHash(selector map[string]string) (string, error) {
 	return hex.EncodeToString(hash[:]), nil
 }
 
-func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAddress string) ([]byte, error) {
+func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAddress string, operationalMode string) ([]byte, error) {
 	var patches []patchOperation
 	var envVars []corev1.EnvVar
 	var hash string
@@ -92,6 +92,11 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAdd
 		Name:  "DNS_MESH_CONFIG_HASH",
 		Value: hash,
 	}
+	envVars = append(envVars, env)
+	env = corev1.EnvVar{
+		Name:  "DNS_MESH_OPERATIONAL_MODE",
+		Value: operationalMode,
+	}
 
 	envVars = append(envVars, env)
 	sidecarContainer := corev1.Container{
@@ -102,7 +107,7 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAdd
 		Env:       envVars,
 	}
 	// TODO : Fix possible update options in DNSConfig
-	// TODO: Non hardcoded dns mesh controller address
+	// TODO : Non hardcoded dns mesh controller address
 
 	// Check if containers array exists
 	containers := deployment.Spec.Template.Spec.Containers

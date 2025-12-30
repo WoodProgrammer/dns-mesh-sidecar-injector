@@ -27,6 +27,7 @@ var (
 
 type Server struct {
 	img                 SidecarImage
+	operationalMode     string
 	k8sClient           kubernetes.Interface
 	dnsServiceName      string
 	dnsServiceNamespace string
@@ -35,6 +36,7 @@ type Server struct {
 func NewServer() *Server {
 	sideCarImage := os.Getenv("SIDECAR_IMAGE")
 	sideCarImageTag := os.Getenv("SIDECAR_IMAGE_TAG")
+	operationalMode := os.Getenv("OPERATIONAL_MODE")
 
 	if len(sideCarImage) == 0 && len(sideCarImageTag) == 0 {
 		sideCarImage = "docker.io/emirozbir/sidecar-injector"
@@ -70,6 +72,7 @@ func NewServer() *Server {
 
 	return &Server{
 		img:                 img,
+		operationalMode:     operationalMode,
 		k8sClient:           clientset,
 		dnsServiceName:      dnsServiceName,
 		dnsServiceNamespace: dnsServiceNamespace,
@@ -166,7 +169,6 @@ func (s *Server) mutate(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionR
 			},
 		}
 	}
-
 	// Check if sidecar injection is enabled via annotation
 	if !shouldInject(&deployment) {
 		log.Printf("Skipping injection for deployment %s/%s", deployment.Namespace, deployment.Name)
@@ -174,7 +176,6 @@ func (s *Server) mutate(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionR
 			Allowed: true,
 		}
 	}
-
 	// Fetch the DNS service IP
 	ctx := context.Background()
 	dnsServiceIP, err := s.getDNSServiceIP(ctx)
@@ -186,14 +187,10 @@ func (s *Server) mutate(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionR
 			},
 		}
 	}
-
 	log.Printf("Using DNS service IP: %s for deployment %s/%s", dnsServiceIP, deployment.Namespace, deployment.Name)
-
-	// Create JSON patch for sidecar injection
-
 	patchBytes := []byte{}
 	if shouldInject(&deployment) {
-		patchBytes, err = createPatch(&deployment, s.img, dnsServiceIP)
+		patchBytes, err = createPatch(&deployment, s.img, dnsServiceIP, s.operationalMode)
 		if err != nil {
 			log.Printf("Could not create patch: %v", err)
 			return &admissionv1.AdmissionResponse{
@@ -203,9 +200,7 @@ func (s *Server) mutate(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionR
 			}
 		}
 	}
-
 	log.Printf("Successfully created patch for deployment %s/%s", deployment.Namespace, deployment.Name)
-
 	return &admissionv1.AdmissionResponse{
 		Allowed: true,
 		Patch:   patchBytes,

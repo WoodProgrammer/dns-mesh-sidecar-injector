@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sample-app-no-policy
+  name: frontend-deployment
   annotations:
     sidecar-injector.io/inject: "true"
   labels:
@@ -10,11 +10,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: sample-app
+      app: frontend
   template:
     metadata:
       labels:
-        app: sample-app
+        app: frontend
     spec:
       containers:
       - name: main
