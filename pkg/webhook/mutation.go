@@ -17,17 +17,6 @@ const (
 	sidecarName       = "sidecar-dns"
 )
 
-type SidecarImage struct {
-	Name string `json:"name"`
-	Tag  string `json:"tag"`
-}
-
-type patchOperation struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value,omitempty"`
-}
-
 func shouldInject(deployment *appsv1.Deployment) bool {
 	annotations := deployment.Annotations
 	if annotations == nil {

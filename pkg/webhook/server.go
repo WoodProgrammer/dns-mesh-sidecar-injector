@@ -28,14 +28,6 @@ var (
 	operationalModes = []string{"balance", "strict", "flexible"}
 )
 
-type Server struct {
-	img                 SidecarImage
-	operationalMode     string
-	k8sClient           kubernetes.Interface
-	dnsServiceName      string
-	dnsServiceNamespace string
-}
-
 func NewServer() *Server {
 	sideCarImage := os.Getenv("SIDECAR_IMAGE")
 	sideCarImageTag := os.Getenv("SIDECAR_IMAGE_TAG")
