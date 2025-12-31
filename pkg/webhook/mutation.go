@@ -96,6 +96,11 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAdd
 		Value: hash,
 	}
 	envVars = append(envVars, env)
+	optMode := corev1.EnvVar{
+		Name:  "DNS_MESH_OPERATIONAL_MODE",
+		Value: operationalMode,
+	}
+	envVars = append(envVars, optMode)
 	sidecarContainer := corev1.Container{
 		Name:      sidecarName,
 		Image:     fmt.Sprintf("%s:%s", img.Name, img.Tag),
@@ -104,9 +109,6 @@ func createPatch(deployment *appsv1.Deployment, img SidecarImage, upstreamDNSAdd
 		Env:       envVars,
 	}
 	// TODO : Fix possible update options in DNSConfig
-	// TODO : Non hardcoded dns mesh controller address
-
-	// Check if containers array exists
 	containers := deployment.Spec.Template.Spec.Containers
 	if len(containers) == 0 {
 		// If no containers exist, create the array with the sidecar

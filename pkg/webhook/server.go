@@ -3,11 +3,13 @@ package webhook
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"slices"
 
 	admissionv1 "k8s.io/api/admission/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -20,9 +22,10 @@ import (
 )
 
 var (
-	runtimeScheme = runtime.NewScheme()
-	codecs        = serializer.NewCodecFactory(runtimeScheme)
-	deserializer  = codecs.UniversalDeserializer()
+	runtimeScheme    = runtime.NewScheme()
+	codecs           = serializer.NewCodecFactory(runtimeScheme)
+	deserializer     = codecs.UniversalDeserializer()
+	operationalModes = []string{"balance", "strict", "flexible"}
 )
 
 type Server struct {
@@ -47,6 +50,13 @@ func NewServer() *Server {
 		Tag:  sideCarImageTag,
 	}
 
+	if len(operationalMode) == 0 {
+		operationalMode = "optional"
+	}
+	if len(operationalMode) != 0 && !slices.Contains(operationalModes, operationalMode) {
+		err := errors.New("Invalid operational modes, operational modes should be in list")
+		log.Fatalf("Operational modes should be in this list %s , %v", operationalModes, err)
+	}
 	// Get DNS service configuration from environment variables with defaults
 	dnsServiceName := os.Getenv("DNS_SERVICE_NAME")
 	if dnsServiceName == "" {
